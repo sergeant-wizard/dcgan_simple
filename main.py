@@ -9,31 +9,22 @@ def training(loss):
   return train_step
 
 with tf.Graph().as_default():
-  #d_input_placeholder = tf.placeholder("float", [None, discriminative.INPUT_SIZE], name="d_input_placeholder")
-  #given_data_label_placeholder = tf.placeholder("float", [None, 2], name="given_placeholder")
+  d_given_data_placeholder = tf.placeholder("float", [None, discriminative.INPUT_SIZE], name="g_given_data_placeholder")
+  g_output_placeholder = tf.placeholder("float", [None, discriminative.INPUT_SIZE], name="g_output_placeholder")
 
-  #feed_dict={
-  #  d_input_placeholder: discriminative.input,
-  #  given_data_label_placeholder: discriminative.given_data_label,
-  #}
+  d_input_placeholder = tf.placeholder("float", [None, discriminative.INPUT_SIZE], name="d_input_placeholder")
+  g_input_placeholder = tf.placeholder("float", [None, generative.INPUT_SIZE], name="g_input_placeholder")
 
-  #d_output = discriminative.inference(d_input_placeholder)
-  #d_loss = discriminative.loss(d_output, given_data_label_placeholder)
-
-  #g_loss = 1 - tf.reduce_sum(tf.nn.softmax(discriminative.inference(g_output)))
-
-  #d_training_op = tf.train.GradientDescentOptimizer(0.01).minimize(
-  #  -(d_loss + g_loss),
-  #  var_list = discriminative.train_var_list()
-  #)
-
-  # g_training_op = tf.train.GradientDescentOptimizer(0.01).minimize(
-  #   g_loss,
-  #   var_list = ['g_hidden1_weight', 'g_hidden1_bias']
-  # )
-
-  aoeu = generative.output
   summary_op = tf.merge_all_summaries()
+
+  g_output = generative.inference(g_input_placeholder)
+  d_output = discriminative.inference(d_input_placeholder)
+
+  d_output_from_given_data = discriminative.inference(d_given_data_placeholder)
+  d_output_from_noise = discriminative.inference(g_output_placeholder)
+
+  d_loss = discriminative.loss(d_output_from_given_data, d_output_from_noise)
+  d_train_op = training(d_loss)
 
   init = tf.initialize_all_variables()
 
@@ -41,10 +32,18 @@ with tf.Graph().as_default():
     summary_writer = tf.train.SummaryWriter('data', graph_def=sess.graph_def)
     sess.run(init)
 
-    # print generative.feed()
-    # print sess.run(aoeu, feed_dict = generative.feed())
+    for step in range(10):
+      g_output_eval = sess.run(g_output, feed_dict = {g_input_placeholder: generative.input})
+      sess.run(d_train_op, feed_dict = {
+        g_output_placeholder: g_output_eval,
+        d_given_data_placeholder: discriminative.input
+      })
 
-    #for step in range(1000):
+      print sess.run([d_output_from_given_data, d_output_from_noise], feed_dict = {
+        g_output_placeholder: g_output_eval,
+        d_given_data_placeholder: discriminative.input
+      })
+
     #  sess.run(d_training_op, feed_dict=feed_dict)
     #  sess.run(g_training_op, feed_dict=feed_dict)
     #  if step % 100 == 0:

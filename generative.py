@@ -19,9 +19,3 @@ def inference(input_placeholder):
     output = tf.matmul(hidden1_output, output_weight) + output_bias
   return tf.nn.relu(output)
 
-input_placeholder = tf.placeholder("float", [None, INPUT_SIZE], name="g_input_placeholder")
-output = inference(input_placeholder)
-
-def feed():
-  return {g_input_placeholder: input_placeholder}
-
